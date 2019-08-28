@@ -1,6 +1,8 @@
 //Chip 8 CPU/Interpretor Class, handles intruction emulation
 #include "CHIP_8.h"
 
+
+
 static const unsigned char fontset[80] =  {
         0xF0, 0x90, 0x90, 0x90, 0xF0,		// 0
         0x20, 0x60, 0x20, 0x20, 0x70,		// 1
@@ -70,8 +72,27 @@ void CHIP_8::emulateCycle(){
 	//Get opcode
 	//Instruction are 16bit, OR to combine
     opcode = (memory[pc] << 8) | (memory[pc+1]);
+    std::cout << "PC: " << pc << "Opcode: " << opcode << std::endl;
 	//Decode Opcode
 	switch(opcode & 0xF000){
+        case 0x0000:
+            switch(opcode & 0x00FF){
+                case(0x00E0):
+                    for(int x = 0; x < 64; x++){
+                        for(int y = 0; y < 32; y++){
+                           gfx[x][y] = 0;
+                        }
+                    }
+                    pc += 2;
+                    break;
+                case(0x00EE):
+                    sp -= 1;
+                    pc = stack[sp];
+                    pc += 2;
+                    break;
+            }
+
+            break;
 		case 0x1000:
 			//JMP - Sets PC to mem adress epcfified at 0x1nnn
 			pc = opcode & 0x0FFF;
@@ -217,7 +238,7 @@ void CHIP_8::emulateCycle(){
         case 0xD000:
         {
 
-        /*
+        /*  Dxyn
          * The interpreter reads n bytes from memory, starting at the address stored in I.
          * These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
          * Sprites are XORed onto the existing screen.
@@ -229,17 +250,113 @@ void CHIP_8::emulateCycle(){
          */
             unsigned int x = V[(opcode & 0x0F00) >>8];
             unsigned int y = V[(opcode & 0x00F0) >>4];
-            unsigned int bytes; //Do this
+            unsigned int nBytes = opcode & 0x000F;
+            //If initial coord is off screen, wrap around
+            x = x % 64;
+            y = y % 32;
 
-            pc += 2;;
+            //VF is set if any pixels are erased - init to 0
+            V[0xF] = 0;
+            for(unsigned int i = 0; i < nBytes; i++){
+                //Grab each byte/row
+                unsigned char currentByte = memory[I + i];
+
+                //Dont draw off screen
+                if((y + i) > 31){
+                    continue;
+                }
+
+                //Loop through each pixel in row
+                for(unsigned int j = 0; j < 8; j++){
+                    //Bit mask for current pixel
+                    unsigned int bitmask = (0b10000000) >> j;
+                    unsigned char bit = bitmask & currentByte;
+                    if(bit != 0){
+                        //IF partially off screen - cut off
+                        if((x + j) > 63){
+                            continue;
+                        }
+                        //if any bits cleared by draw, set V[F] to 1;
+                        if(gfx[x+j][y+j] != 0){
+                            V[0xF] = 1;
+                        }
+                        gfx[x+j][y+j] ^= bit;
+
+                    }
+
+                }
+            }
+            pc += 2;
             break;
         }
 		case 0xE000:
-			break;
+            switch(opcode & 0x00FF){
+                case(0x009E):
+                if(keypad[V[(opcode & 0x0F00) >>8]] == 1){
+                    pc += 2;
+                }
+                pc +=2;
+                break;
+            }
+            switch(opcode & 0x00FF){
+                case(0x009E):
+                if(keypad[V[(opcode & 0x0F00) >>8]] == 0){
+                    pc += 2;
+                }
+                pc +=2;
+                break;
+            }
+        break;
 		case 0xF000:
-			break;
-		case 0x0000:
-			break;
+            switch(opcode & 0x00FF){
+                case(0x0007):
+                    V[(opcode & 0x0F00) >>8] = delay_timer;
+                    pc += 2;
+                    break;
+                case(0x000A):
+                //Blocking nput - get input and store value/keynum in VX Register
+                    pc += 2;
+                    break;
+                case(0x0015):
+                    delay_timer = V[(opcode & 0x0F00) >>8];
+                    pc += 2;
+                    break;
+                case(0x0018):
+                    sound_timer = V[(opcode & 0x0F00) >>8];
+                    pc += 2;
+                    break;
+                case(0x001E):
+                    I += V[(opcode & 0x0F00) >>8];
+                    pc += 2;
+                    break;
+                case(0x0029):
+                    I = V[(opcode & 0x0F00) >>8] * 5;
+                    pc += 2;
+                    break;
+                case(0x0033):{
+                    unsigned int num = V[(opcode & 0x0F00) >>8];
+                    memory[I] = (num / 100) % 10;
+                    memory[I+1] = (num / 10) % 10;
+                    memory[I+2] = num % 10;
+                    pc += 2;
+                    break;
+                }
+
+                case(0x0055):
+                    for(int i = 0; i < ((opcode & 0x0F00) >> 8); i++){
+                        memory[I+i] = V[i];
+                    }
+                    pc += 2;
+                    break;
+                case(0x0065):
+                    for(int i = 0; i < ((opcode & 0x0F00) >> 8); i++){
+                        V[i] = memory[I+i];
+                    }
+                    pc += 2;
+
+
+            }
+            break;
 		default:
             std::cout << "ERROR: Unknown Opcode" << std::endl;
 	}	
@@ -261,6 +378,7 @@ void CHIP_8::loadROM(std::string filename){
         std::cout << "Dumping ROM to Console:" << std::endl;
         for(int i = 0; i < size; i++){
             //TODO : LOAD rum into MEME starting at 0x200
+            memory[0x200+i] = buffer[i];
             std::cout << std::hex << int(buffer[i] & 0xff);
             std::cout << " ";
         }
@@ -271,4 +389,15 @@ void CHIP_8::loadROM(std::string filename){
         std::cout << "Error loading ROM." << std::endl;
     }
 
+}
+//Prints the contents of the memory to the console
+void CHIP_8::printMemory(){
+    std::cout << "Dumping Memory";
+    for(int i = 0; i < 4096; i++){
+        if(i % 16 == 0){
+            std::cout << std::endl;
+        }
+        std::cout << std::hex << int(memory[i] & 0xff);
+        std::cout << " ";
+    }
 }

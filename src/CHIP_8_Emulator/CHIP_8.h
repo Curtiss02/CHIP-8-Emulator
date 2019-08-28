@@ -28,6 +28,8 @@ class CHIP_8{
 	unsigned short stack[16];
 	//Keypad inputs
 	unsigned char keypad[16];
+
+
 	public:
 
     //Functions
@@ -35,4 +37,5 @@ class CHIP_8{
     void init();
 	void emulateCycle();
     void loadROM(std::string filename);
+    void printMemory();
 };
