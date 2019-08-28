@@ -175,7 +175,8 @@ debug/main.o: ../CHIP_8_Emulator/main.cpp C:/Qt/5.13.0/mingw73_64/include/QtCore
 		C:/Qt/5.13.0/mingw73_64/include/QtCore/qvarlengtharray.h \
 		C:/Qt/5.13.0/mingw73_64/include/QtCore/qcontainerfwd.h \
 		C:/Qt/5.13.0/mingw73_64/include/QtCore/qobject_impl.h \
-		C:/Qt/5.13.0/mingw73_64/include/QtCore/qeventloop.h
+		C:/Qt/5.13.0/mingw73_64/include/QtCore/qeventloop.h \
+		../CHIP_8_Emulator/CHIP_8.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o debug\main.o ..\CHIP_8_Emulator\main.cpp
 
 ####### Install

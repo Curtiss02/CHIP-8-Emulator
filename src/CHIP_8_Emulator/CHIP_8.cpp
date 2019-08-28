@@ -230,7 +230,7 @@ void CHIP_8::emulateCycle(){
             unsigned int x = V[(opcode & 0x0F00) >>8];
             unsigned int y = V[(opcode & 0x00F0) >>4];
             unsigned int bytes; //Do this
-            x += 1;
+
             pc += 2;;
             break;
         }
@@ -244,4 +244,31 @@ void CHIP_8::emulateCycle(){
             std::cout << "ERROR: Unknown Opcode" << std::endl;
 	}	
   }
+void CHIP_8::loadROM(std::string filename){
+    std::ifstream romFile;
+    char* buffer;
+    std::streampos size;
+    romFile.open(filename,std::ios::in | std::ios::binary | std::ios::ate);
+    if(romFile.is_open()){
+        //Get size of ROM
+        size = romFile.tellg();
+        //Allocate buffer
+        buffer = new char [size];
+        romFile.seekg (0, std::ios::beg);
+        romFile.read(buffer, size);
+        romFile.close();
+        std::cout << "Success loading ROM!" << std::endl;
+        std::cout << "Dumping ROM to Console:" << std::endl;
+        for(int i = 0; i < size; i++){
+            //TODO : LOAD rum into MEME starting at 0x200
+            std::cout << std::hex << int(buffer[i] & 0xff);
+            std::cout << " ";
+        }
+        std::cout << std::endl;
+        delete[] buffer;
+    }
+    else{
+        std::cout << "Error loading ROM." << std::endl;
+    }
 
+}

@@ -1,6 +1,7 @@
 #include <iostream>
-#include <random>
 #include <cstdlib>
+#include <fstream>
+#include <string>
 
 class CHIP_8{
 	private:
@@ -33,4 +34,5 @@ class CHIP_8{
 	CHIP_8();
     void init();
 	void emulateCycle();
+    void loadROM(std::string filename);
 };
