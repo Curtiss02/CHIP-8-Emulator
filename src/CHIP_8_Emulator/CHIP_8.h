@@ -44,7 +44,7 @@ class CHIP_8{
     unsigned char** getGFX();
     unsigned int getGFX_X_Y(int x, int y);
     void dumpGFX();
-
+    bool compatabilityFlag;
     bool drawFlag;
 
 };

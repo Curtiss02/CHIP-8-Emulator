@@ -53,6 +53,9 @@ void CHIP_8::init(){
            gfx[x][y] = 0;
         }
 	}
+    for(int i = 0; i < 16; i++){
+        keypad[i] = 0;
+    }
 	//Clear Timers
     delay_timer = 0;
 	sound_timer = 0;
@@ -72,7 +75,7 @@ void CHIP_8::emulateCycle(){
 	//Get opcode
 	//Instruction are 16bit, OR to combine
     opcode = (memory[pc] << 8) | (memory[pc+1]);
-    std::cout << "PC: " << pc << "Opcode: " << opcode << std::endl;
+    //std::cout << "Opcode: " << opcode << std::endl;
     drawFlag = false;
 	//Decode Opcode
 	switch(opcode & 0xF000){
@@ -183,6 +186,7 @@ void CHIP_8::emulateCycle(){
                     pc += 2;
                     break;
 				case(0x0006):
+                if(!compatabilityFlag){
                     //SHIFT RIGHT - if LSB of Vx = 1, set Vf = 1, then >> Vx idk why Vy is needed
                     if((V[(opcode & 0x00F0) >> 4] & 1) == 1){
                         V[0xF] = 1;
@@ -191,6 +195,17 @@ void CHIP_8::emulateCycle(){
                         V[0xF] = 0;
                     }
                     V[(opcode & 0x0F00) >>8] = V[(opcode & 0x00F0) >> 4]  >> 1;
+
+                     }
+                else{
+                    if((V[(opcode & 0x0F00) >> 8] & 1) == 1){
+                        V[0xF] = 1;
+                    }
+                    else{
+                        V[0xF] = 0;
+                    }
+                    V[(opcode & 0x0F00) >>8] = V[(opcode & 0x0F00) >> 8]  >> 1;
+                }
                     pc += 2;
                     break;
 				case(0x0007):
@@ -205,14 +220,25 @@ void CHIP_8::emulateCycle(){
                     pc += 2;
                     break;
                 case(0x000E):
-                    //SHIFT LEFT - if MSB of Vx = 1, VF = 1, else 0. Then, Vx = Vx << 2, 0x40 is MSB bit mask
-                    if(((V[(opcode & 0x00F0) >> 4] & 0x40) >> 7) == 1){
-                        V[0xF] = 1;
+                    //SHIFT LEFT - if MSB of Vx = 1, VF = 1, else 0. Then, Vx = Vx << 2, 0x80 is MSB bit mask
+                    if(!compatabilityFlag){
+                        if(((V[(opcode & 0x00F0) >> 4] & 0x80) >> 7) == 1){
+                            V[0xF] = 1;
+                        }
+                        else{
+                            V[0xF] = 0;
+                        }
+                        V[(opcode & 0x0F00) >>8] = V[(opcode & 0x00F0) >> 4] << 1;
                     }
                     else{
-                        V[0xF] = 0;
+                        if(((V[(opcode & 0x0F00) >> 8] & 0x80) >> 7) == 1){
+                            V[0xF] = 1;
+                        }
+                        else{
+                            V[0xF] = 0;
+                        }
+                        V[(opcode & 0x0F00) >>8] = V[(opcode & 0x0F00) >> 8] << 1;
                     }
-                    V[(opcode & 0x0F00) >>8] = V[(opcode & 0x00F0) >> 4] << 1;
                     pc += 2;
                     break;
 				
@@ -273,7 +299,7 @@ void CHIP_8::emulateCycle(){
                 //Loop through each pixel in row
                 for(unsigned int j = 0; j < 8; j++){
                     //Bit mask for current pixel
-                    unsigned char bitmask = (0x40) >> j;
+                    unsigned char bitmask = (0x80) >> j;
                     unsigned char bit = (bitmask & currentByte) != 0;
                     if(bit != 0){
                         //IF partially off screen - cut off
@@ -285,9 +311,6 @@ void CHIP_8::emulateCycle(){
                             V[0xF] = 1;
                         }
                         gfx[x+j][y+i] ^= bit;
-                        std::cout << "BITMASK: " << int(bitmask) << std::endl;
-                        std::cout << "Curent Byte: " << int(currentByte) << std::endl;
-                        std::cout << "BIT: " << int(bit) <<std::endl;
 
                     }
 
@@ -307,9 +330,11 @@ void CHIP_8::emulateCycle(){
                 break;
 
                 case(0x00A1):
-                if(keypad[V[(opcode & 0x0F00) >>8]] == 1){
-                pc += 2;
+                if(keypad[V[(opcode & 0x0F00) >>8]] == 0){
+                    pc += 2;
                 }
+                pc += 2;
+                break;
 
             }
         break;
@@ -325,6 +350,7 @@ void CHIP_8::emulateCycle(){
                         if(keypad[i] == 1){
                             V[(opcode & 0x0F00) >>8] = i;
                             pc += 2;
+                            break;
                         }
                     }
                     //Wont increment pc unless some key is pressed - therefor blocking
@@ -342,14 +368,18 @@ void CHIP_8::emulateCycle(){
                     pc += 2;
                     break;
                 case(0x0029):
-                    I = V[(opcode & 0x0F00) >>8] * 5;
+                    I = V[(opcode & 0x0F00) >>8] * 0x5;
                     pc += 2;
                     break;
                 case(0x0033):{
-                    unsigned int num = V[(opcode & 0x0F00) >>8];
-                    memory[I] = (num / 100) % 10;
-                    memory[I+1] = (num / 10) % 10;
-                    memory[I+2] = num % 10;
+                    unsigned int value = V[(opcode & 0x0F00) >>8];
+                    unsigned char ones = value % 10;
+                    value = value / 10;
+                    unsigned char tens = value % 10;
+                    unsigned char hundreds = value / 10;
+                    memory[I] = hundreds;
+                    memory[I+1] = tens;
+                    memory[I+2] = ones;
                     pc += 2;
                     break;
                 }
@@ -425,6 +455,7 @@ void CHIP_8::printMemory(){
 }
 void CHIP_8::setKeypad(unsigned char KeyNum, unsigned char KeyVal){
     keypad[KeyNum] = KeyVal;
+    std::cout << std::hex << "Key " << int(KeyNum) << "set to " << int(KeyVal) << std::endl;
 }
 
 unsigned char** CHIP_8::getGFX(){
@@ -453,3 +484,4 @@ void CHIP_8::dumpGFX(){
         std::cout << std::endl;
     }
 }
+
