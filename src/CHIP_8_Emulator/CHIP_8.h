@@ -27,7 +27,7 @@ class CHIP_8{
 	unsigned char sp;
 	unsigned short stack[16];
 	//Keypad inputs
-	unsigned char keypad[16];
+    unsigned char keypad[16];
 
 
 	public:
@@ -38,4 +38,13 @@ class CHIP_8{
 	void emulateCycle();
     void loadROM(std::string filename);
     void printMemory();
+    void setKeypad(unsigned char KeyNum, unsigned char KeyVal);
+    void decrementTimers();
+    void getSoundTimer();
+    unsigned char** getGFX();
+    unsigned int getGFX_X_Y(int x, int y);
+    void dumpGFX();
+
+    bool drawFlag;
+
 };

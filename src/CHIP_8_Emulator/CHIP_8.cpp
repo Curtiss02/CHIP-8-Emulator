@@ -61,7 +61,7 @@ void CHIP_8::init(){
     for(int i = 0; i < 80; i++){
         memory[i] = fontset[i];
     }
-	
+    drawFlag = false;
 	
 }
 	
@@ -73,10 +73,12 @@ void CHIP_8::emulateCycle(){
 	//Instruction are 16bit, OR to combine
     opcode = (memory[pc] << 8) | (memory[pc+1]);
     std::cout << "PC: " << pc << "Opcode: " << opcode << std::endl;
+    drawFlag = false;
 	//Decode Opcode
 	switch(opcode & 0xF000){
         case 0x0000:
             switch(opcode & 0x00FF){
+                // Clear Screen
                 case(0x00E0):
                     for(int x = 0; x < 64; x++){
                         for(int y = 0; y < 32; y++){
@@ -84,6 +86,7 @@ void CHIP_8::emulateCycle(){
                         }
                     }
                     pc += 2;
+                    drawFlag = true;
                     break;
                 case(0x00EE):
                     sp -= 1;
@@ -269,8 +272,8 @@ void CHIP_8::emulateCycle(){
                 //Loop through each pixel in row
                 for(unsigned int j = 0; j < 8; j++){
                     //Bit mask for current pixel
-                    unsigned int bitmask = (0b10000000) >> j;
-                    unsigned char bit = bitmask & currentByte;
+                    unsigned char bitmask = (0x40) >> j;
+                    unsigned char bit = (bitmask & currentByte) >> j;
                     if(bit != 0){
                         //IF partially off screen - cut off
                         if((x + j) > 63){
@@ -281,11 +284,15 @@ void CHIP_8::emulateCycle(){
                             V[0xF] = 1;
                         }
                         gfx[x+j][y+j] ^= bit;
+                        std::cout << "BITMASK: " << int(bitmask) << std::endl;
+                        std::cout << "Curent Byte: " << int(currentByte) << std::endl;
+                        std::cout << "BIT: " << int(bit) <<std::endl;
 
                     }
 
                 }
             }
+            drawFlag = true;
             pc += 2;
             break;
         }
@@ -315,7 +322,13 @@ void CHIP_8::emulateCycle(){
                     break;
                 case(0x000A):
                 //Blocking nput - get input and store value/keynum in VX Register
-                    pc += 2;
+                    for(unsigned int i = 0; i < 16; i++){
+                        if(keypad[i] == 1){
+                            V[(opcode & 0x0F00) >>8] = i;
+                            pc += 2;
+                        }
+                    }
+                    //Wont increment pc unless some key is pressed - therefor blocking
                     break;
                 case(0x0015):
                     delay_timer = V[(opcode & 0x0F00) >>8];
@@ -390,6 +403,16 @@ void CHIP_8::loadROM(std::string filename){
     }
 
 }
+void CHIP_8::decrementTimers(){
+    if(sound_timer > 0){
+        sound_timer -= 1;
+    }
+    if(delay_timer > 0){
+        delay_timer -= 1;
+    }
+}
+
+
 //Prints the contents of the memory to the console
 void CHIP_8::printMemory(){
     std::cout << "Dumping Memory";
@@ -399,5 +422,35 @@ void CHIP_8::printMemory(){
         }
         std::cout << std::hex << int(memory[i] & 0xff);
         std::cout << " ";
+    }
+}
+void CHIP_8::setKeypad(unsigned char KeyNum, unsigned char KeyVal){
+    keypad[KeyNum] = KeyVal;
+}
+
+unsigned char** CHIP_8::getGFX(){
+    unsigned char ** graphics = 0;
+    graphics = new unsigned char*[64];
+    for(int i = 0; i < 64; i++){
+        graphics[i] = new unsigned char[32];
+        for(int j = 0; j < 32; j++){
+            graphics[i][j] = gfx[i][j];
+        }
+
+    }
+    return graphics;
+}
+
+unsigned int CHIP_8::getGFX_X_Y(int x, int y){
+    return gfx[x][y];
+}
+
+void CHIP_8::dumpGFX(){
+    std::cout << "GFX MEM:\n" ;
+    for(int x = 0; x < 64; x++){
+        for(int y = 0; y < 32; y++){
+           std::cout << int(gfx[x][y]);
+        }
+        std::cout << std::endl;
     }
 }
