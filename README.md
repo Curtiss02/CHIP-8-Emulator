@@ -1,2 +1,4 @@
 # CHIP-8-Emulator
-WIP Emulator/Interpreter for CHIP-8 Architechture
+CHIP-8 Emulator
+Works with most games I think
+Built using C++ with SDL2 for GUI
