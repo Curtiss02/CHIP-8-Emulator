@@ -184,13 +184,13 @@ void CHIP_8::emulateCycle(){
                     break;
 				case(0x0006):
                     //SHIFT RIGHT - if LSB of Vx = 1, set Vf = 1, then >> Vx idk why Vy is needed
-                    if((V[(opcode & 0x0F00) >>8] & 1) == 1){
+                    if((V[(opcode & 0x00F0) >> 4] & 1) == 1){
                         V[0xF] = 1;
                     }
                     else{
                         V[0xF] = 0;
                     }
-                    V[(opcode & 0x0F00) >>8] = V[(opcode & 0x0F00) >>8] >> 1;
+                    V[(opcode & 0x0F00) >>8] = V[(opcode & 0x00F0) >> 4]  >> 1;
                     pc += 2;
                     break;
 				case(0x0007):
@@ -206,13 +206,13 @@ void CHIP_8::emulateCycle(){
                     break;
                 case(0x000E):
                     //SHIFT LEFT - if MSB of Vx = 1, VF = 1, else 0. Then, Vx = Vx << 2, 0x40 is MSB bit mask
-                    if(((V[(opcode & 0x0F00) >> 8] & 0x40) >> 7) == 1){
+                    if(((V[(opcode & 0x00F0) >> 4] & 0x40) >> 7) == 1){
                         V[0xF] = 1;
                     }
                     else{
                         V[0xF] = 0;
                     }
-                    V[(opcode & 0x0F00) >>8] = V[(opcode & 0x0F00) >>8] << 1;
+                    V[(opcode & 0x0F00) >>8] = V[(opcode & 0x00F0) >> 4] << 1;
                     pc += 2;
                     break;
 				
@@ -223,6 +223,7 @@ void CHIP_8::emulateCycle(){
             if(V[(opcode & 0x0F00) >>8] != V[(opcode & 0x00F0) >> 4]){
                 pc += 2;
             }
+            pc+=2;
 			break;
 		case 0xA000:
             //LD I 0xAnnn - set REG I to nnn
@@ -273,17 +274,17 @@ void CHIP_8::emulateCycle(){
                 for(unsigned int j = 0; j < 8; j++){
                     //Bit mask for current pixel
                     unsigned char bitmask = (0x40) >> j;
-                    unsigned char bit = (bitmask & currentByte) >> j;
+                    unsigned char bit = (bitmask & currentByte) != 0;
                     if(bit != 0){
                         //IF partially off screen - cut off
                         if((x + j) > 63){
                             continue;
                         }
                         //if any bits cleared by draw, set V[F] to 1;
-                        if(gfx[x+j][y+j] != 0){
+                        if(gfx[x+j][y+i] != 0){
                             V[0xF] = 1;
                         }
-                        gfx[x+j][y+j] ^= bit;
+                        gfx[x+j][y+i] ^= bit;
                         std::cout << "BITMASK: " << int(bitmask) << std::endl;
                         std::cout << "Curent Byte: " << int(currentByte) << std::endl;
                         std::cout << "BIT: " << int(bit) <<std::endl;
@@ -304,14 +305,12 @@ void CHIP_8::emulateCycle(){
                 }
                 pc +=2;
                 break;
-            }
-            switch(opcode & 0x00FF){
-                case(0x009E):
-                if(keypad[V[(opcode & 0x0F00) >>8]] == 0){
-                    pc += 2;
+
+                case(0x00A1):
+                if(keypad[V[(opcode & 0x0F00) >>8]] == 1){
+                pc += 2;
                 }
-                pc +=2;
-                break;
+
             }
         break;
 		case 0xF000:

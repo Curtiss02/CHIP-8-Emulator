@@ -45,17 +45,18 @@ int main(int argc, char *argv[])
 
 
     //Set some rate variables
-    int clockHz = 3;
+    int clockHz = 500;
     int timerHz = 60;
-    unsigned long long startTime = std::chrono::duration_cast<std::chrono::nanoseconds>
+    long long startTime = std::chrono::duration_cast<std::chrono::nanoseconds>
             (std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     double clockTime = 1000000000 / clockHz;
     double timerTick = 1000000000 / timerHz;
     double deltaC = 0, deltaT = 0;
-
+    int ticks = 0;
+    int timer = 0;
     //Main loop
     while(!quit) {
-        unsigned long long currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>
+        long long currentTime = std::chrono::duration_cast<std::chrono::nanoseconds>
                 (std::chrono::high_resolution_clock::now().time_since_epoch()).count();
         deltaC += (currentTime - startTime) / clockTime;
         deltaT += (currentTime - startTime) / timerTick;
@@ -63,21 +64,25 @@ int main(int argc, char *argv[])
 
         //Keep execution rate to this
         if(deltaC >= 1){
+
             getInput(&e);
             myChip.emulateCycle();
             deltaC--;
+            ticks++;
         }
         if(deltaT >= 1){
+
             //Decrement timers here;
             //clr screen
 
-
+            timer++;
             deltaT--;
         }
         if(myChip.drawFlag){
            drawGraphics(renderer);
            myChip.drawFlag = false;
         }
+
 
 
     }
@@ -143,7 +148,6 @@ void getInput(SDL_Event * e){
 void drawGraphics(SDL_Renderer * renderer){
     std::cout << "RENDERING NOW" << std::endl;
     //myChip.dumpGFX();
-    x++;
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
     SDL_Rect pixel;
