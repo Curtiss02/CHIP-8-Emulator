@@ -4,3 +4,5 @@ CHIP-8 Emulator
 Works with most games I think
 
 Built using C++ with SDL2 for GUI
+
+https://en.wikipedia.org/wiki/CHIP-8
